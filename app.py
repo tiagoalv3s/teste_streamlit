@@ -44,7 +44,7 @@ def ler_pdf():
 # Inicialização da API
 def inicializar_api():
     load_dotenv()
-    api_key = os.getenv("GOOGLE_API_KEY")
+    api_key = os.getenv("API_KEY")
     
     if not api_key:
         st.error("Chave da API não encontrada no arquivo .env")
