@@ -4,3 +4,4 @@ google-generativeai
 rapidfuzz
 pandas
 PyPDF2
+openpyxl
