@@ -1,3 +1,6 @@
 streamlit
 python-dotenv
 google-generativeai
+rapidfuzz
+pandas
+PyPDF2
