@@ -122,7 +122,7 @@ def main():
     codigo_obras = ler_pdf()
     
     # Tabs principais
-    tab1, tab2 = st.tabs(["Consulta de Imóvel", "Código de Obras"])
+    tab1, tab2 = st.tabs(["CONSULTA DE IMÓVEL", "CÓDIGO DE OBRAS"])
     
     # Tab de Consulta de Imóvel
     with tab1:
