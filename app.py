@@ -8,7 +8,7 @@ from PyPDF2 import PdfReader
 
 # Configuração inicial do Streamlit
 st.set_page_config(
-    page_title="Sistema de Fiscalização",
+    page_title="Fiscalização",
     page_icon="🏢",
     layout="wide",
     initial_sidebar_state="expanded"
