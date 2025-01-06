@@ -57,7 +57,7 @@ def inicializar_api():
         return None
 
 # Função de busca
-def buscar_com_fuzzy(nome, coluna, df, limite_score=60):
+def buscar_com_fuzzy(nome, coluna, df, limite_score=40):
     if df is None:
         return None, "Dados não disponíveis"
     
@@ -114,7 +114,7 @@ def consultar_codigo_obras(pergunta, codigo_obras, model):
 
 # Interface principal
 def main():
-    st.title("Sistema de Fiscalização - PMT")
+    st.title("Fiscalização - PMT")
     
     # Inicialização dos componentes
     model = inicializar_api()
