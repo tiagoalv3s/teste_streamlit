@@ -56,36 +56,40 @@ def inicializar_api():
         st.error(f"Erro ao inicializar a API: {e}")
         return None
 
-# Função de busca
-def buscar_com_fuzzy(nome, coluna, df, limite_score=40):
+# Função de busca inteligente em notificações
+def buscar_notificacao(query, df, model):
     if df is None:
-        return None, "Dados não disponíveis"
+        return "Dados não disponíveis para consulta."
     
     try:
-        valores_unicos = df[coluna].dropna().unique()
-        if not valores_unicos.size:
-            return None, "Não há dados disponíveis para busca."
-            
-        correspondencia = process.extractOne(nome, valores_unicos, scorer=fuzz.ratio)
-        if correspondencia and correspondencia[1] >= limite_score:
-            return df[df[coluna] == correspondencia[0]], None
-        return None, "Nenhuma correspondência encontrada com similaridade suficiente."
-    except Exception as e:
-        return None, f"Erro na busca: {str(e)}"
+        # Converte o DataFrame para texto para contextualização
+        registros = df.to_dict('records')
+        contexto_dados = "\n".join([
+            f"Notificação: Endereço: {reg['Endereco']}, "
+            f"Proprietário: {reg.get('Proprietario', 'Não informado')}, "
+            f"Status: {reg.get('Status', 'Não informado')}, "
+            f"Data: {reg.get('Data', 'Não informada')}"
+            for reg in registros[:10]  # Limita a 10 registros para não sobrecarregar
+        ])
 
-# Função para gerar respostas
-def resposta_humanizada(contexto, model):
-    if model is None:
-        return "Serviço de IA não disponível no momento."
-    
-    try:
-        prompt = f"{contexto}\nPor favor, forneça uma explicação clara e objetiva sobre essas informações."
+        prompt = (
+            "Você é um especialista em fiscalização municipal. "
+            "Com base nos dados das notificações abaixo, "
+            "analise a consulta do usuário e forneça informações relevantes "
+            "de forma clara e objetiva. Se encontrar registros relacionados, "
+            "detalhe as informações encontradas.\n\n"
+            f"Dados das notificações:\n{contexto_dados}\n\n"
+            f"Consulta do usuário: {query}\n\n"
+            "Por favor, forneça uma resposta detalhada e profissional, "
+            "incluindo todas as informações relevantes encontradas."
+        )
+
         resposta = model.generate_content(prompt)
-        return resposta.content.strip() if hasattr(resposta, "content") else "Conteúdo não disponível."
+        return resposta.content.strip() if hasattr(resposta, "content") else "Não foi possível processar a consulta."
     except Exception as e:
-        return f"Erro ao gerar resposta: {str(e)}"
+        return f"Erro ao processar a consulta: {str(e)}"
 
-# Função específica para consulta do código de obras
+# Função para consulta do código de obras (mantida como estava)
 def consultar_codigo_obras(pergunta, codigo_obras, model):
     if not model:
         return "Serviço de IA não disponível no momento."
@@ -124,42 +128,18 @@ def main():
     # Tabs principais
     tab1, tab2 = st.tabs(["NOTIFICAÇÕES", "CÓDIGO DE OBRAS"])
     
-    # Tab de Consulta de Imóvel
+    # Tab de Notificações
     with tab1:
-        st.header("Consulta de notificação")
-        endereco = st.text_input("Digite alguma informação relacionada:")
+        st.header("Consulta de notificações")
+        query = st.text_area("Digite sua consulta (endereço, proprietário, status, etc.):")
         
-        if st.button("Buscar", key="buscar_endereco"):
-            if endereco:
-                resultado, msg = buscar_com_fuzzy(endereco, 'Endereco', df)
-                if resultado is not None:
-                    registro = resultado.iloc[0]
-                    
-                    # Exibição dos resultados
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.subheader("Dados do Imóvel")
-                        st.write(f"**Endereço:** {registro['Endereco']}")
-                        st.write(f"**Proprietário:** {registro.get('Proprietario', 'Não informado')}")
-                        
-                    with col2:
-                        st.subheader("Informações da Fiscalização")
-                        st.write(f"**Status:** {registro.get('Status', 'Não informado')}")
-                        st.write(f"**Data:** {registro.get('Data', 'Não informada')}")
-                    
-                    # Análise do caso
-                    st.subheader("Análise do Caso")
-                    contexto = f"Imóvel localizado em {registro['Endereco']}, " \
-                             f"propriedade de {registro.get('Proprietario', 'proprietário não informado')}, " \
-                             f"com status {registro.get('Status', 'não informado')}."
-                    
-                    with st.spinner("Gerando análise..."):
-                        analise = resposta_humanizada(contexto, model)
-                        st.write(analise)
-                else:
-                    st.warning(msg)
+        if st.button("Buscar", key="buscar_notificacao"):
+            if query:
+                with st.spinner("Analisando sua consulta..."):
+                    resposta = buscar_notificacao(query, df, model)
+                    st.write(resposta)
             else:
-                st.warning("Por favor, digite um endereço para buscar.")
+                st.warning("Por favor, digite sua consulta.")
     
     # Tab do Código de Obras
     with tab2:
