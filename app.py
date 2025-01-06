@@ -86,6 +86,33 @@ def resposta_humanizada(contexto, model):
     except Exception as e:
         return f"Erro ao gerar resposta: {str(e)}"
 
+# Função específica para consulta do código de obras
+def consultar_codigo_obras(pergunta, codigo_obras, model):
+    if not model:
+        return "Serviço de IA não disponível no momento."
+    
+    if not codigo_obras:
+        return "Código de obras não disponível para consulta."
+    
+    try:
+        prompt = (
+            "Você é um especialista em legislação municipal e código de obras. "
+            "Por favor, analise o seguinte código de obras e responda à pergunta "
+            "de forma clara, objetiva e técnica, citando os artigos relevantes quando aplicável.\n\n"
+            f"Código de Obras:\n{codigo_obras}\n\n"
+            f"Pergunta: {pergunta}\n"
+        )
+        
+        resposta = model.generate_content(prompt)
+        if hasattr(resposta, "text"):
+            return resposta.text
+        elif hasattr(resposta, "content"):
+            return resposta.content
+        else:
+            return "Não foi possível gerar uma resposta adequada."
+    except Exception as e:
+        return f"Erro ao processar a consulta: {str(e)}"
+
 # Interface principal
 def main():
     st.title("Sistema de Fiscalização - Prefeitura")
@@ -141,17 +168,10 @@ def main():
         pergunta = st.text_area("Digite sua pergunta sobre o código de obras:")
         
         if st.button("Consultar", key="consultar_codigo"):
-            if pergunta and codigo_obras:
-                with st.spinner("Analisando..."):
-                    resposta = model.generate_content(
-                        f"Com base no código de obras a seguir: {codigo_obras}\n\n"
-                        f"Pergunta: {pergunta}\n"
-                        "Forneça uma resposta técnica e objetiva."
-                    )
-                    if hasattr(resposta, "content"):
-                        st.write(resposta.content)
-                    else:
-                        st.error("Não foi possível gerar uma resposta.")
+            if pergunta:
+                with st.spinner("Analisando sua pergunta..."):
+                    resposta = consultar_codigo_obras(pergunta, codigo_obras, model)
+                    st.write(resposta)
             else:
                 st.warning("Por favor, digite uma pergunta para consultar.")
 
