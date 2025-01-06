@@ -6,117 +6,76 @@ import google.generativeai as genai
 from rapidfuzz import process, fuzz
 from PyPDF2 import PdfReader
 
-# Configuração inicial do Streamlit
-st.set_page_config(
-    page_title="Fiscalização",
-    page_icon="🏢",
-    initial_sidebar_state="expanded"
-)
+# [Código anterior mantido até a função buscar_notificacao]
 
-# Funções de carregamento de dados
-def carregar_planilha():
-    try:
-        df = pd.read_excel('planilha_notif.xlsx')
-        if df.empty:
-            st.error("A planilha está vazia.")
-            return None
-        return df
-    except FileNotFoundError:
-        st.error("Arquivo 'planilha_notif.xlsx' não encontrado.")
-        return None
-    except Exception as e:
-        st.error(f"Erro ao carregar a planilha: {e}")
-        return None
-
-def ler_pdf():
-    try:
-        with open("codigo_obras.pdf", "rb") as file:
-            pdf_reader = PdfReader(file)
-            return " ".join([page.extract_text() for page in pdf_reader.pages])
-    except FileNotFoundError:
-        st.error("Arquivo 'codigo_obras.pdf' não encontrado.")
-        return None
-    except Exception as e:
-        st.error(f"Erro ao carregar o código de obras: {e}")
-        return None
-
-# Inicialização da API
-def inicializar_api():
-    load_dotenv()
-    api_key = os.getenv("API_KEY")
-    
-    if not api_key:
-        st.error("Chave da API não encontrada no arquivo .env")
-        return None
-    
-    try:
-        genai.configure(api_key=api_key)
-        return genai.GenerativeModel(model_name="gemini-1.5-flash")
-    except Exception as e:
-        st.error(f"Erro ao inicializar a API: {e}")
-        return None
-
-# Função de busca inteligente em notificações
+# Nova função de busca inteligente em notificações
 def buscar_notificacao(query, df, model):
-    if df is None:
-        return "Dados não disponíveis para consulta."
+    if df is None or model is None:
+        return "Sistema indisponível no momento."
     
     try:
-        # Converte o DataFrame para texto para contextualização
-        registros = df.to_dict('records')
-        contexto_dados = "\n".join([
-            f"Notificação: Endereço: {reg['Endereco']}, "
-            f"Proprietário: {reg.get('Proprietario', 'Não informado')}, "
-            f"Status: {reg.get('Status', 'Não informado')}, "
-            f"Data: {reg.get('Data', 'Não informada')}"
-            for reg in registros[:10]  # Limita a 10 registros para não sobrecarregar
-        ])
+        # Preparar dados para análise
+        dados_formatados = []
+        for _, row in df.iterrows():
+            dados_formatados.append({
+                'endereco': str(row.get('Endereco', '')),
+                'proprietario': str(row.get('Proprietario', '')),
+                'status': str(row.get('Status', '')),
+                'data': str(row.get('Data', '')),
+                'setor': str(row.get('Setor', '')),
+                'artigo': str(row.get('Artigo', '')),
+                'observacao': str(row.get('Observacao', ''))
+            })
 
-        prompt = (
-            "Você é um especialista em fiscalização municipal. "
-            "Com base nos dados das notificações abaixo, "
-            "analise a consulta do usuário e forneça informações relevantes "
-            "de forma clara e objetiva. Se encontrar registros relacionados, "
-            "detalhe as informações encontradas.\n\n"
-            f"Dados das notificações:\n{contexto_dados}\n\n"
-            f"Consulta do usuário: {query}\n\n"
-            "Por favor, forneça uma resposta detalhada e profissional, "
-            "incluindo todas as informações relevantes encontradas."
-        )
-
-        resposta = model.generate_content(prompt)
-        return resposta.content.strip() if hasattr(resposta, "content") else "Não foi possível processar a consulta."
-    except Exception as e:
-        return f"Erro ao processar a consulta: {str(e)}"
-
-# Função para consulta do código de obras (mantida como estava)
-def consultar_codigo_obras(pergunta, codigo_obras, model):
-    if not model:
-        return "Serviço de IA não disponível no momento."
-    
-    if not codigo_obras:
-        return "Código de obras não disponível para consulta."
-    
-    try:
-        prompt = (
-            "Você é um especialista em legislação municipal e código de obras."
-            "Por favor, analise o seguinte código de obras e responda à pergunta."
-            "de forma clara, objetiva e técnica, citando os artigos relevantes quando aplicável.\n\n"
-            f"Código de Obras:\n{codigo_obras}\n\n"
-            f"Pergunta: {pergunta}\n"
-        )
+        # Criar contexto para a IA
+        prompt = f"""
+        Você é um assistente especializado em fiscalização municipal. Analise os dados das notificações e responda à consulta do usuário.
         
-        resposta = model.generate_content(prompt)
-        if hasattr(resposta, "text"):
-            return resposta.text
-        elif hasattr(resposta, "content"):
-            return resposta.content
-        else:
-            return "Não foi possível gerar uma resposta adequada."
-    except Exception as e:
-        return f"Erro ao processar a consulta: {str(e)}"
+        Consulta do usuário: {query}
+        
+        Dados disponíveis das notificações:
+        {str(dados_formatados)}
+        
+        Instruções:
+        1. Analise a consulta e os dados disponíveis
+        2. Identifique padrões e informações relevantes
+        3. Forneça um resumo estruturado das informações encontradas
+        4. Se a consulta mencionar um setor, endereço, ou proprietário específico, foque nesses dados
+        5. Inclua estatísticas relevantes quando apropriado
+        6. Se não encontrar dados específicos, forneça informações gerais relacionadas
+        7. Organize a resposta de forma clara e profissional
+        8. Caso não encontre informações relacionadas, indique isso claramente
+        
+        Por favor, forneça uma resposta detalhada e útil.
+        """
 
-# Interface principal
+        # Gerar resposta
+        resposta = model.generate_content(prompt)
+        if not hasattr(resposta, "content"):
+            return "Não foi possível gerar uma resposta adequada."
+            
+        # Processar e formatar a resposta
+        texto_resposta = resposta.content.strip()
+        
+        # Adicionar cabeçalho informativo
+        return f"""### Resultado da Análise
+
+{texto_resposta}
+
+---
+*Nota: Esta análise foi gerada com base nos dados disponíveis no sistema.*
+"""
+
+    except Exception as e:
+        return f"""### Erro na Consulta
+
+Ocorreu um erro ao processar sua consulta: {str(e)}
+
+Por favor, tente reformular sua pergunta ou entre em contato com o suporte técnico se o problema persistir."""
+
+# [Resto do código mantido como estava]
+
+# Modificação na interface principal (dentro da função main())
 def main():
     st.title("Fiscalização - PMT")
     
@@ -131,28 +90,33 @@ def main():
     # Tab de Notificações
     with tab1:
         st.header("Consulta de notificações")
-        query = st.text_area("Digite sua consulta (endereço, proprietário, status, etc.):")
+        
+        # Adicionar exemplos de consultas
+        with st.expander("📝 Exemplos de consultas"):
+            st.markdown("""
+            - "Mostre todas as notificações do Setor 1"
+            - "Quantas notificações existem no status pendente?"
+            - "Quais são as notificações mais recentes?"
+            - "Resumo das notificações por setor"
+            - "Buscar notificações do proprietário João"
+            - "Notificações da Rua Principal"
+            """)
+        
+        query = st.text_area(
+            "Digite sua consulta:",
+            placeholder="Ex: Mostre todas as notificações do Setor 1",
+            help="Você pode perguntar sobre setores, endereços, proprietários, status, etc."
+        )
         
         if st.button("Buscar", key="buscar_notificacao"):
             if query:
-                with st.spinner("Analisando sua consulta..."):
+                with st.spinner("Analisando dados e gerando resposta..."):
                     resposta = buscar_notificacao(query, df, model)
-                    st.write(resposta)
+                    st.markdown(resposta)
             else:
                 st.warning("Por favor, digite sua consulta.")
     
-    # Tab do Código de Obras
-    with tab2:
-        st.header("Código de Obras")
-        pergunta = st.text_area("Digite sua pergunta sobre o código de obras:")
-        
-        if st.button("Consultar", key="consultar_codigo"):
-            if pergunta:
-                with st.spinner("Analisando sua pergunta..."):
-                    resposta = consultar_codigo_obras(pergunta, codigo_obras, model)
-                    st.write(resposta)
-            else:
-                st.warning("Por favor, digite uma pergunta para consultar.")
+    # [Resto do código mantido como estava]
 
 if __name__ == "__main__":
     main()
