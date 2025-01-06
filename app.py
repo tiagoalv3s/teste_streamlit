@@ -122,12 +122,12 @@ def main():
     codigo_obras = ler_pdf()
     
     # Tabs principais
-    tab1, tab2 = st.tabs(["CONSULTA DE IMÓVEL", "CÓDIGO DE OBRAS"])
+    tab1, tab2 = st.tabs(["NOTIFICAÇÕES", "CÓDIGO DE OBRAS"])
     
     # Tab de Consulta de Imóvel
     with tab1:
-        st.header("Consulta de Imóvel")
-        endereco = st.text_input("Digite o endereço do imóvel:")
+        st.header("Consulta de notificação")
+        endereco = st.text_input("Digite alguma informação relacionada:")
         
         if st.button("Buscar", key="buscar_endereco"):
             if endereco:
