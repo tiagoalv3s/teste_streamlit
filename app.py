@@ -115,7 +115,7 @@ def consultar_codigo_obras(pergunta, codigo_obras, model):
 
 # Interface principal
 def main():
-    st.title("Sistema de Fiscalização - Prefeitura")
+    st.title("Sistema de Fiscalização - PMT")
     
     # Inicialização dos componentes
     model = inicializar_api()
@@ -164,7 +164,7 @@ def main():
     
     # Tab do Código de Obras
     with tab2:
-        st.header("Consulta ao Código de Obras")
+        st.header("Código de Obras")
         pergunta = st.text_area("Digite sua pergunta sobre o código de obras:")
         
         if st.button("Consultar", key="consultar_codigo"):
