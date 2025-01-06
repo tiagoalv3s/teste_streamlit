@@ -10,7 +10,6 @@ from PyPDF2 import PdfReader
 st.set_page_config(
     page_title="Fiscalização",
     page_icon="🏢",
-    layout="wide",
     initial_sidebar_state="expanded"
 )
 
@@ -96,8 +95,8 @@ def consultar_codigo_obras(pergunta, codigo_obras, model):
     
     try:
         prompt = (
-            "Você é um especialista em legislação municipal e código de obras. "
-            "Por favor, analise o seguinte código de obras e responda à pergunta "
+            "Você é um especialista em legislação municipal e código de obras."
+            "Por favor, analise o seguinte código de obras e responda à pergunta."
             "de forma clara, objetiva e técnica, citando os artigos relevantes quando aplicável.\n\n"
             f"Código de Obras:\n{codigo_obras}\n\n"
             f"Pergunta: {pergunta}\n"
