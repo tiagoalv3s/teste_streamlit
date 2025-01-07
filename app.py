@@ -134,7 +134,7 @@ def consultar_codigo_obras(pergunta, codigo_obras, model):
 
 # Interface principal
 def main():
-    st.title("Sistema de Fiscalização Municipal")
+    st.title("Sistema de Fiscalização ")
     
     # Inicialização dos componentes
     model = inicializar_api()
